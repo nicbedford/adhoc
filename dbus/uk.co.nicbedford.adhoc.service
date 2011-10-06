@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=uk.co.nicbedford.adhoc
+Exec=/var/usr/sbin/uk.co.nicbedford.adhoc

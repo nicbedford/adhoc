@@ -1,0 +1,10 @@
+{
+	"title": "Ad-Hoc",
+	"id": "uk.co.nicbedford.adhoc",
+	"version": "0.0.2",
+	"vendor": "Nic Bedford",	
+	"type": "web",
+	"main": "index.html",
+    "icon": "icon.png",
+	"uiRevision": 2,
+}

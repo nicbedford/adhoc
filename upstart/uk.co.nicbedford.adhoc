@@ -1,0 +1,7 @@
+description "Ad-Hoc Wi-Fi Configuration Service"
+
+start on stopped finish
+
+exec /var/usr/sbin/uk.co.nicbedford.adhoc
+
+respawn

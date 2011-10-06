@@ -1,0 +1,14 @@
+{
+  "role": {
+     "exeName":"/var/usr/sbin/uk.co.nicbedford.adhoc",
+     "type": "regular",
+     "allowedNames": ["uk.co.nicbedford.adhoc"]
+  },
+  "permissions": [
+    {
+      "service":"uk.co.nicbedford.adhoc",
+      "inbound":["*"],
+      "outbound":["*"]
+    }
+  ]
+}

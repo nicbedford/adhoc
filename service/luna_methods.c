@@ -28,12 +28,18 @@
 
 char *g_adhocAddress = NULL;
 
-void log(const char *trace)
+void log(const char *fmt, ...)
 {
+	char vabuffer[512];
+	va_list args;
+    va_start(args, fmt);
+	vsprintf(vabuffer, fmt, args);
+    va_end(args);
+
 	FILE *f = fopen("/media/internal/uk.co.nicbedford.adhoc.log", "a");
 	if(f != NULL)
 	{
-		fwrite(trace, strlen(trace), 1, f);
+		fwrite(vabuffer, strlen(vabuffer), 1, f);
 		fputc('\n', f);
 		fclose(f);
 	}
@@ -143,9 +149,7 @@ char *getDhcpAddress()
 
 	if(strlen(address) > 0)
 	{
-		char temp[100];
-		sprintf(temp, "IP address received: %s", address);
-		log(temp);
+		log("Recieved IP address: %s", address);
 
 		g_adhocAddress = address;
 		return address;
@@ -161,7 +165,7 @@ char *getDhcpAddress()
 
 bool updateDns(const char *dns)
 {
-	log("updateDns");
+	log("updateDns: %s", dns);
 	bool result = false;
 	char buffer[256];
 
@@ -182,7 +186,7 @@ bool resetDns()
 	log("resetDns");
 	bool result = false;
 
-	FILE *fp = popen("echo \"search config\" > /etc/resolv.conf;echo \"nameserver 127.0.0.1\" >> /etc/resolv.conf", "r");
+	FILE *fp = popen("echo \"nameserver 127.0.0.1\" > /etc/resolv.conf", "r");
 
 	if(fp != NULL)
 	{
@@ -284,8 +288,7 @@ bool start_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 	json_t *preferedDNS = json_find_first_label(object, "preferedDNS");
 	json_t *alternateDNS = json_find_first_label(object, "alternateDNS");
                
-	sprintf(reply, "ssid: %s, preferedDNS: %s, alternateDNS: %s", ssid->child->text, preferedDNS->child->text, alternateDNS->child->text);
-	log(reply);
+	log("ssid: %s, preferedDNS: %s, alternateDNS: %s", ssid->child->text, preferedDNS->child->text, alternateDNS->child->text);
 
 	if (!ssid || (ssid->child->type != JSON_STRING) ||
 		!preferedDNS || (preferedDNS->child->type != JSON_STRING) ||
@@ -357,6 +360,7 @@ bool stop_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 
 	resetDns();
 	startPalmWifiService();
+	g_adhocAddress = NULL;
 
 	sprintf(reply, "{\"returnValue\": true}");
 	log(reply);
@@ -388,7 +392,7 @@ bool query_adhoc_state_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 
 	if(g_adhocAddress != NULL)
 	{
-		sprintf(reply, "{\"returnValue\": true, \"connected\": true, \"address\": \"%s\"}", *g_adhocAddress);
+		sprintf(reply, "{\"returnValue\": true, \"connected\": true, \"address\": \"%s\"}", g_adhocAddress);
 	}
 	else
 	{

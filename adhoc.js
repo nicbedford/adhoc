@@ -49,8 +49,7 @@ enyo.kind({
 			onFailure: "queryAdhocStateFailure"
 		},
 		{kind: "AppMenu", components: [
-			{caption: "About", onclick: "doAbout"},
-			{caption: "Toggle Debug Mode", onclick: "doDebug"},
+			{caption: "About", onclick: "doAbout"}
 		]},
         { kind: "Header", style: "width: 100%; height: 60px;", components: [
             { content: "Ad-Hoc", flex: 1 },
@@ -74,14 +73,7 @@ enyo.kind({
 		{ name: "stopButton", kind: "Button", content: "Stop Ad-Hoc Mode", style: "width: 460px;", onclick: "doStopAdhoc" },
 		{ name: "scrim", kind: "Scrim", layoutKind: "VFlexLayout", align: "center", pack: "center", onclick: "simulateScrimOff", components: [
 			{ name: 'spinner', kind: "SpinnerLarge", showing: true }
-		]},
-		{ name: "debugPanel", kind: "HFlexBox", pack: "end", style: "width: 100%; margin-top: 20px;", components: [
-			{ name: "test1Button", kind: "Button", content: "simulateStartSuccess", flex: 1, onclick: "simulateStartSuccess" },	
-			{ name: "test2Button", kind: "Button", content: "simulateStartFailure", flex: 1, onclick: "simulateStartFailure" },
-			{ name: "test3Button", kind: "Button", content: "simulateStopSuccess", flex: 1, onclick: "simulateStopSuccess" },	
-			{ name: "test4Button", kind: "Button", content: "simulateStopFailure", flex: 1, onclick: "simulateStopFailure" },
-			{ name: "test5Button", kind: "Button", content: "queryAdhocState", flex: 1, onclick: "doQueryAdhocState" }
-		]},
+		]}
     ],
 	buttonClick: function() {
 		this.$.scrim.show();
@@ -94,7 +86,6 @@ enyo.kind({
 	},
     create: function () {
         this.inherited(arguments);
-		this.$.debugPanel.hide();
         this.$.getPreferencesCall.call(
         {
             keys: ["ssid", "preferedDNS", "alternateDNS"]
@@ -218,41 +209,5 @@ enyo.kind({
 	},
 	doAbout: function (inSender, inResponse) {
 		enyo.log("doAbout");
-	},
-	doDebug: function (inSender, inResponse) {
-		enyo.log("doDebug");
-		if(this.$.debugPanel.showing == true) {
-			this.$.debugPanel.hide();		
-		}
-		else {
-			this.$.debugPanel.show();
-		}
-	},
-	simulateStartSuccess: function (inSender, inResponse) {
-		enyo.log("simulateStartSuccess");
-		var response = JSON.parse("{ \"returnValue\": true, \"address\": \"192.168.2.2\"}");
-		this.startAdhocSuccess(inSender, response);
-	},
-	simulateStartFailure: function (inSender, inResponse) {
-		enyo.log("simulateStartFailure");
-		this.startAdhocFailure(inSender, inResponse);
-	},
-	simulateStopSuccess: function (inSender, inResponse) {
-		enyo.log("simulateStopSuccess");
-		this.stopAdhocSuccess(inSender, inResponse);
-	},
-	simulateStopFailure: function (inSender, inResponse) {
-		enyo.log("simulateStopFailure");
-		this.stopAdhocFailure(inSender, inResponse);
-	},
-	simulateScrimOn: function (inSender, inResponse) {
-		enyo.log("simulateScrimOn");
-		this.$.scrim.show();
-	},
-	doQueryAdhocState: function (inSender, inResponse) {
-		enyo.log("doQueryAdhocState");
-		var goodResponse = JSON.parse("{ \"returnValue\": true, \"connected\": true, \"address\": \"192.168.9.9\"}");
-		var badResponse = JSON.parse("{ \"returnValue\": true, \"connected\": false}");
-		this.queryAdhocStateSuccess(inSender, goodResponse);
 	}
 });

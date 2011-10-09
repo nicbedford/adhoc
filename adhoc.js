@@ -1,12 +1,10 @@
-/* Ad-Hoc app.js */
+/* adhoc.js */
 
 enyo.kind({
     name: "enyo.Adhoc",
     kind: enyo.VFlexBox,
 	align: "center",
-    events: {
-        onRecieve: ""
-    },
+    events: { onRecieve: "" },
     components: [
         {
             name: "getPreferencesCall",
@@ -49,12 +47,15 @@ enyo.kind({
 			onFailure: "queryAdhocStateFailure"
 		},
 		{kind: "AppMenu", components: [
-			{caption: "About", onclick: "doAbout"}
+			{caption: "About", onclick: "aboutModalOpen"}
 		]},
         { kind: "Header", style: "width: 100%; height: 60px;", components: [
             { content: "Ad-Hoc", flex: 1 },
 			{ name: "wifiActive", kind: "Image", style: "width: 0px; height: 0px;"}
         ]},
+		{ name:"aboutModal", kind:"ModalDialog", components: [
+			{ kind: "aboutDialog", onClose: "aboutModalClose" }
+		]},
         { kind: "RowGroup", caption: "Ad-Hoc Network Settings", style: "width: 460px; margin-top: 20px;", align: "center", components: [ 
 			{ kind: "HFlexBox", align: "center", components: [
 				{ content: "SSID: ", flex: 1 },
@@ -71,19 +72,10 @@ enyo.kind({
         ]},
 		{ name: "startButton", kind: "Button", content: "Start Ad-Hoc Mode", style: "width: 460px;", className: "enyo-button-affirmative", onclick: "doStartAdhoc" },
 		{ name: "stopButton", kind: "Button", content: "Stop Ad-Hoc Mode", style: "width: 460px;", onclick: "doStopAdhoc" },
-		{ name: "scrim", kind: "Scrim", layoutKind: "VFlexLayout", align: "center", pack: "center", onclick: "simulateScrimOff", components: [
+		{ name: "scrim", kind: "Scrim", layoutKind: "VFlexLayout", align: "center", pack: "center", components: [
 			{ name: 'spinner', kind: "SpinnerLarge", showing: true }
 		]}
     ],
-	buttonClick: function() {
-		this.$.scrim.show();
-	},
-	button2Click: function() {
-		this.$.spinner.show();
-	},
-	scrimClick: function() {
-		this.$.scrim.hide();
-	},
     create: function () {
         this.inherited(arguments);
         this.$.getPreferencesCall.call(
@@ -93,7 +85,6 @@ enyo.kind({
         this.savedSSID = "";
         this.savedPreferedDNS = "";
         this.savedAlternateDNS = "";
-	
 		this.$.queryAdhocStateCall.call();
 		this.adhocConnected = false;
     },
@@ -207,7 +198,12 @@ enyo.kind({
 		this.adhocConnected = false;
 		this.stopAdhocSuccess(inSender, inResponse);
 	},
-	doAbout: function (inSender, inResponse) {
-		enyo.log("doAbout");
+	aboutModalOpen: function (inSender, inResponse) {
+		enyo.log("aboutModalOpen");
+		this.$.aboutModal.openAtCenter();
+	},
+	aboutModalClose: function (inSender, inResponse) {
+		enyo.log("aboutModalClose");
+		this.$.aboutModal.close();
 	}
 });

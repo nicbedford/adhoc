@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "luna_service.h"
 #include "luna_methods.h"
@@ -30,16 +32,35 @@ char *g_adhocAddress = NULL;
 
 void log(const char *fmt, ...)
 {
+	// Calc timestamp with milliseconds 
+	time_t rawtime;
+	struct tm *timeptr;
+	char timebuffer[32];
+	char msbuffer[6];
+
+	rawtime = time(NULL);
+	timeptr = localtime(&rawtime);
+	strftime(timebuffer, sizeof(timebuffer), "%d/%m/%y %H:%M:%S", timeptr);
+
+	int ms = rawtime % 1000;
+	sprintf(msbuffer, ":%03d", ms);
+	strcat(timebuffer, msbuffer);
+
+	// Format varargs input
 	char vabuffer[512];
 	va_list args;
     va_start(args, fmt);
 	vsprintf(vabuffer, fmt, args);
     va_end(args);
 
+	// Generate trace line
+	char buffer[512];
+	sprintf(buffer, "%s : %s", timebuffer, vabuffer);
+
 	FILE *f = fopen("/media/internal/uk.co.nicbedford.adhoc.log", "a");
 	if(f != NULL)
 	{
-		fwrite(vabuffer, strlen(vabuffer), 1, f);
+		fwrite(buffer, strlen(buffer), 1, f);
 		fputc('\n', f);
 		fclose(f);
 	}
@@ -77,6 +98,22 @@ bool detectHardware()
 	bool result = false;
 
 	FILE *fp = popen("modprobe ar6000", "r");
+
+	if(fp != NULL)
+	{
+		pclose(fp);
+		result = true;
+	}
+
+	return result;
+}
+
+bool takeDownHardware()
+{
+	log("takeDownHardware");
+	bool result = false;
+
+	FILE *fp = popen("ifconfig eth0 down", "r");
 
 	if(fp != NULL)
 	{
@@ -305,6 +342,7 @@ bool start_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 
 	stopPalmWifiService();
 	detectHardware();
+	takeDownHardware();
 	bringUpHardware();
 	configureWifiInterface(ssid->child->text);
 	const char* address = getDhcpAddress();

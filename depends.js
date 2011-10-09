@@ -1,4 +1,5 @@
 enyo.depends(
     "adhoc.js",
-    "adhoc.css"
+    "adhoc.css",
+	"about.js"
 );

@@ -1,10 +1,12 @@
 {
 	"title": "Ad-Hoc",
 	"id": "uk.co.nicbedford.adhoc",
-	"version": "0.0.3",
-	"vendor": "Nic Bedford",	
+	"version": "0.0.4",
+	"vendor": "Nic Bedford",
+	"vendorurl": "http://nicbedford.co.uk/",
 	"type": "web",
 	"main": "index.html",
     "icon": "icon.png",
-	"uiRevision": 2,
+	"smallicon": "smallicon.png",
+	"uiRevision": 2
 }

@@ -163,6 +163,7 @@ enyo.kind({
     },
     startAdhocFailure: function (inSender, inResponse) {
         enyo.log("startAdhocFailure");
+		enyo.windows.addBannerMessage("Unable to get IP address", "{}");
 		enyo.log("errorCde: " + inResponse.errorCode + ", errorText: " + inResponse.errorText);
 		this.$.scrim.hide();
 		this.$.wifiActive.setStyle("width: 0px; height: 0px;");

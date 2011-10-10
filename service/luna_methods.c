@@ -108,22 +108,6 @@ bool detectHardware()
 	return result;
 }
 
-bool takeDownHardware()
-{
-	log("takeDownHardware");
-	bool result = false;
-
-	FILE *fp = popen("ifconfig eth0 down", "r");
-
-	if(fp != NULL)
-	{
-		pclose(fp);
-		result = true;
-	}
-
-	return result;
-}
-
 bool bringUpHardware()
 {
 	log("bringUpHardware");
@@ -342,7 +326,6 @@ bool start_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 
 	stopPalmWifiService();
 	detectHardware();
-	takeDownHardware();
 	bringUpHardware();
 	configureWifiInterface(ssid->child->text);
 	const char* address = getDhcpAddress();

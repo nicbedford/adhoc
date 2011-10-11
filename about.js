@@ -5,6 +5,7 @@ enyo.kind({
 	kind:"Control",
 	events: { onClose:"" },
 	components: [
+		{ name: "openApplicationCall", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open" },
 		{ kind: "HFlexBox", components: [
 			{ name: "appInfoHeaderIconImage", kind:"Image", style: "margin-right: 8px; padding-top: 4px;"},
 			{ kind: "VFlexBox", flex: 1, components: [
@@ -22,8 +23,7 @@ enyo.kind({
 				{ content: "Send Email", flex: 1 }
 			]}
 		]},
-		{ kind: "Button", caption: "Close", onclick: "doClose" },
-		{ name: "service", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open" }
+		{ kind: "Button", caption: "Close", onclick: "doClose" }
 	],
 	create: function () {
 		this.inherited(arguments);
@@ -34,10 +34,21 @@ enyo.kind({
 	},
 	openWebsite: function () {
 		enyo.log("openWebsite");
-		this.$.service.call({ id: "com.palm.app.browser", params: { target: this.appInfo.vendorurl }});
+		this.$.openApplicationCall.call({
+			id: "com.palm.app.browser", 
+			params: {
+				target: this.appInfo.vendorurl
+			}
+		});
 	},
 	openEmail: function () {
 		enyo.log("openEmail");
-		this.$.service.call({ id: "com.palm.app.email", params: { summary: this.appInfo.title + " " + this.appInfo.version, recipients:[{ "type": "email", "role": 1, "value": "webos@nicbedford.co.uk" }]}});
+		this.$.openApplicationCall.call({
+			id: "com.palm.app.email", 
+			params: {
+				summary: this.appInfo.title + " " + this.appInfo.version,
+				recipients:[{ "type": "email", "role": 1, "value": "webos@nicbedford.co.uk" }]
+			}
+		});
 	}
 });

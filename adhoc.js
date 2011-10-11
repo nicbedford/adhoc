@@ -78,8 +78,7 @@ enyo.kind({
     ],
     create: function () {
         this.inherited(arguments);
-        this.$.getPreferencesCall.call(
-        {
+        this.$.getPreferencesCall.call({
             keys: ["ssid", "preferedDNS", "alternateDNS"]
         });
         this.savedSSID = "";
@@ -120,8 +119,7 @@ enyo.kind({
         var newPreferedDNSValue = this.$.preferedDNS.getValue();
         var newAlternateDNSValue = this.$.alternateDNS.getValue();
 
-        this.$.setPreferencesCall.call(
-        {
+        this.$.setPreferencesCall.call({
             "ssid": newSSIDValue,
             "preferedDNS": newPreferedDNSValue,
             "alternateDNS": newAlternateDNSValue
@@ -135,8 +133,7 @@ enyo.kind({
         enyo.log("doStartAdhoc");
 		this.doSave(inSender, inEvent);
 		enyo.log("ssid: " + this.savedSSID + ", preferedDNS: " + this.savedPreferedDNS + ", alternateDNS: " + this.savedAlternateDNS);
-        this.$.startAdhocCall.call(
-        {
+        this.$.startAdhocCall.call({
             "ssid": this.savedSSID,
             "preferedDNS": this.savedPreferedDNS,
             "alternateDNS": this.savedAlternateDNS

@@ -169,7 +169,7 @@ bool configureWifiInterface(const char *ssid)
 		FILE *fp = popen(buffer, "r");
 		if(fp != NULL)
 		{
-			char buffer[100];
+			char buffer[100] = {0};
 			fgets(buffer, sizeof(buffer)-1, fp);
 			if(strlen(buffer) > 0)
 			{

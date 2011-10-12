@@ -23,6 +23,13 @@ enyo.kind({
             onFailure: "setPreferencesFailure"
         },
 		{ 
+			name: "versionCheckCall", 
+			kind: "PalmService",
+	      	service: "palm://uk.co.nicbedford.adhoc/",
+			method: "version",
+	      	onSuccess: "onVersionCheck"
+		},
+		{ 
 			name: "startAdhocCall", 
 			kind: "PalmService",
 	      	service: "palm://uk.co.nicbedford.adhoc/",
@@ -46,8 +53,16 @@ enyo.kind({
 	      	onSuccess: "queryAdhocStateSuccess",
 			onFailure: "queryAdhocStateFailure"
 		},
-		{kind: "AppMenu", components: [
-			{caption: "About", onclick: "aboutModalOpen"}
+		{ 
+			name: "setDebugLoggingCall", 
+			kind: "PalmService",
+	      	service: "palm://uk.co.nicbedford.adhoc/",
+			method: "setDebugLog",
+	      	onSuccess: "setDebugLoggingSuccess"
+		},
+		{ kind: "AppMenu", lazy: false, components: [
+			{ caption: "About", onclick: "aboutModalOpen" },
+			{ name: "debugMenu", caption: "", onclick: "doToggleDebugLogging" }
 		]},
         { kind: "Header", style: "width: 100%; height: 60px;", components: [
             { content: "Ad-Hoc", flex: 1 },
@@ -63,50 +78,73 @@ enyo.kind({
 			]},
 			{ kind: "HFlexBox", align: "center",components: [
 				{ content: "Prefered DNS: ", flex: 1 },
-				{ name: "preferedDNS", kind: "Input", flex: 2, onchange: "doSave" }
+				{ name: "preferedDNS", kind: "Input", flex: 2, onkeypress: "filterInputKeypress", onchange: "doSave" }
 			]},
 			{ kind: "HFlexBox", align: "center",components: [
 				{ content: "Alternate DNS: ", flex: 1 },
-				{ name: "alternateDNS", kind: "Input", flex: 2, onchange: "doSave" }
+				{ name: "alternateDNS", kind: "Input", flex: 2, onkeypress: "filterInputKeypress", onchange: "doSave" }
 			]},
         ]},
 		{ name: "startButton", kind: "Button", content: "Start Ad-Hoc Mode", style: "width: 460px;", className: "enyo-button-affirmative", onclick: "doStartAdhoc" },
 		{ name: "stopButton", kind: "Button", content: "Stop Ad-Hoc Mode", style: "width: 460px;", onclick: "doStopAdhoc" },
 		{ name: "scrim", kind: "Scrim", layoutKind: "VFlexLayout", align: "center", pack: "center", components: [
 			{ name: 'spinner', kind: "SpinnerLarge", showing: true }
-		]}
+		]},
+		{ name: "errorMessage", kind: "HFlexBox", flex: 1, style: "margin-top: 10px;", components: [
+			{ content: "", flex: 1 }
+		]},
     ],
     create: function () {
         this.inherited(arguments);
+		this.$.versionCheckCall.call();
         this.$.getPreferencesCall.call({
-            keys: ["ssid", "preferedDNS", "alternateDNS"]
+            keys: ["ssid", "preferedDNS", "alternateDNS", "debugLogging"]
         });
         this.savedSSID = "";
         this.savedPreferedDNS = "";
         this.savedAlternateDNS = "";
-		this.$.queryAdhocStateCall.call();
+		this.debugLogging = false;
 		this.adhocConnected = false;
     },
     getPreferencesSuccess: function (inSender, inResponse) {
+		enyo.log("getPreferencesSuccess");
         this.savedSSID = inResponse.ssid;
         this.savedPreferedDNS = inResponse.preferedDNS;
         this.savedAlternateDNS = inResponse.alternateDNS;
-
-		enyo.log("ssid: " + this.savedSSID + ", preferedDNS: " + this.savedPreferedDNS + ", alternateDNS: " + this.savedAlternateDNS);
-
+		this.debugLogging = inResponse.debugLogging;
+		enyo.log("ssid: " + this.savedSSID + ", preferedDNS: " + this.savedPreferedDNS + ", alternateDNS: " + this.savedAlternateDNS, "debugLogging: " + this.debugLogging);
         this.$.ssid.setValue(this.savedSSID);
         this.$.preferedDNS.setValue(this.savedPreferedDNS);
         this.$.alternateDNS.setValue(this.savedAlternateDNS);
+
+		if(this.debugLogging == true) {
+			this.$.debugMenu.setCaption("Disable debug logging");
+		}
+		else {
+			this.$.debugMenu.setCaption("Enable debug logging");
+		}
+		this.$.setDebugLoggingCall.call({"enableDebugLogging": this.debugLogging});
     },
     getPreferencesFailure: function (inSender, inResponse) {
-        enyo.log("getPreferencesFailure: failed to read preferences");
+        enyo.log("getPreferencesFailure");
     },
     setPreferencesSuccess: function (inSender, inResponse) {
-        enyo.log("setPreferencesSuccess: preferences saved successfully");
+        enyo.log("setPreferencesSuccess");
     },
     setPreferencesFailure: function (inSender, inResponse) {
-        enyo.log("setPreferencesFailure: failed to write preferences");
+        enyo.log("setPreferencesFailure");
     },
+	onVersionCheck: function (inSender, inResponse) {
+		enyo.log("onVersionCheck");
+		if(!inResponse) {
+			this.$.errorMessage.content.setValue("Error connecting to service, please restart device and try again!");		
+			this.$.errorMessage.show();
+		}
+		else {
+			enyo.log("apiVersion: " + inResponse.apiVersion);
+			this.$.queryAdhocStateCall.call();
+		}
+	},
     showingChanged: function () {
         this.$.ssid.setValue(this.savedSSID);
         this.$.preferedDNS.setValue(this.savedPreferedDNS);
@@ -122,7 +160,8 @@ enyo.kind({
         this.$.setPreferencesCall.call({
             "ssid": newSSIDValue,
             "preferedDNS": newPreferedDNSValue,
-            "alternateDNS": newAlternateDNSValue
+            "alternateDNS": newAlternateDNSValue,
+			"debugLogging": this.debugLogging
         });
 
         this.savedSSID = newSSIDValue;
@@ -196,6 +235,18 @@ enyo.kind({
 		this.adhocConnected = false;
 		this.stopAdhocSuccess(inSender, inResponse);
 	},
+	setDebugLoggingSuccess: function (inSender, inResponse) {
+		enyo.log("setDebugLoggingSuccess");
+		if(inResponse.debugLoggingEnabled == true) {
+			this.debugLogging = true;
+			this.$.debugMenu.setCaption("Disable debug log");
+		}
+		else {
+			this.debugLogging = false;
+			this.$.debugMenu.setCaption("Enable debug log");
+		} 
+		this.doSave(inSender, inResponse);
+	},
 	aboutModalOpen: function (inSender, inResponse) {
 		enyo.log("aboutModalOpen");
 		this.$.aboutModal.openAtCenter();
@@ -203,5 +254,19 @@ enyo.kind({
 	aboutModalClose: function (inSender, inResponse) {
 		enyo.log("aboutModalClose");
 		this.$.aboutModal.close();
+	},
+	doToggleDebugLogging: function (inSender, inResponse) {
+		enyo.log("doToggleDebugLogging");
+		var toggleLogging = !this.debugLogging;
+		this.$.setDebugLoggingCall.call({"enableDebugLogging": toggleLogging});
+	},
+	filterInputKeypress: function (inSender, inEvent) {
+		enyo.log("filterInputKeypress");
+		if(inEvent && ((inEvent.keyCode >= 49 && inEvent.keyCode <= 57) || inEvent.keyCode == 46) ) {
+			inEvent.returnValue = true;
+		}
+		else {
+			inEvent.returnValue = false;
+		}
 	}
 });

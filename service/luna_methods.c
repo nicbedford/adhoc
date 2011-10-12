@@ -27,11 +27,16 @@
 #include "luna_methods.h"
 
 #define API_VERSION "1"
+#define LOG_FILE "/media/internal/uk.co.nicbedford.adhoc.log"
 
 char *g_adhocAddress = NULL;
+bool g_debugLoggingEnabled = false;
 
 void log(const char *fmt, ...)
 {
+	if(!g_debugLoggingEnabled)
+		return;
+
 	// Calc timestamp with milliseconds 
 	time_t rawtime;
 	struct tm *timeptr;
@@ -57,12 +62,12 @@ void log(const char *fmt, ...)
 	char buffer[512];
 	sprintf(buffer, "%s : %s", timebuffer, vabuffer);
 
-	FILE *f = fopen("/media/internal/uk.co.nicbedford.adhoc.log", "a");
-	if(f != NULL)
+	FILE *fp = fopen(LOG_FILE, "a");
+	if(fp != NULL)
 	{
-		fwrite(buffer, strlen(buffer), 1, f);
-		fputc('\n', f);
-		fclose(f);
+		fwrite(buffer, strlen(buffer), 1, fp);
+		fputc('\n', fp);
+		fclose(fp);
 	}
 }
 
@@ -108,6 +113,22 @@ bool detectHardware()
 	return result;
 }
 
+bool takeDownHardware()
+{
+	log("takeDownHardware");
+	bool result = false;
+
+	FILE *fp = popen("ifconfig eth0 down", "r");
+
+	if(fp != NULL)
+	{
+		pclose(fp);
+		result = true;
+	}
+
+	return result;
+}
+
 bool bringUpHardware()
 {
 	log("bringUpHardware");
@@ -124,19 +145,43 @@ bool bringUpHardware()
 	return result;
 }
 
+bool restartNetworkCard()
+{
+	log("restartNetworkCard");
+	bool downResult = false;
+	bool upResult = false;
+
+	downResult = takeDownHardware();
+	upResult = bringUpHardware();
+	return downResult && upResult;
+}
+
 bool configureWifiInterface(const char *ssid)
 {
 	log("configureWifiInterface");
 	bool result = false;
+	int retryCount = 0;
 	char buffer[256];
 
-	sprintf(buffer, "iwconfig eth0 mode ad-hoc essid \"%s\" power off", ssid);
-	FILE *fp = popen(buffer, "r");
-
-	if(fp != NULL)
+	while(retryCount < 3 && result != true)
 	{
-		pclose(fp);
-		result = true;
+		sprintf(buffer, "iwconfig eth0 mode ad-hoc essid \"%s\" power off 2>&1", ssid);
+		FILE *fp = popen(buffer, "r");
+		if(fp != NULL)
+		{
+			char buffer[100];
+			fgets(buffer, sizeof(buffer)-1, fp);
+			if(strlen(buffer) > 0)
+			{
+				log("retry: %d", ++retryCount);
+			}
+			else
+			{
+				result = true;
+			}
+			
+			pclose(fp);
+		}
 	}
 
 	return result;
@@ -278,7 +323,12 @@ bool version_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 	LSError lserror;
 	LSErrorInit(&lserror);
 
-	if (!LSMessageReply(lshandle, message, "{\"returnValue\": true, \"version\": \"" VERSION "\", \"apiVersion\": \"" API_VERSION "\"}", &lserror))
+	// Local buffer to store the reply
+	char reply[MAXLINLEN];
+	sprintf(reply, "{\"returnValue\": true, \"version\": \"%s\", \"apiVersion\": \"%s\"}", VERSION, API_VERSION);
+	log(reply);
+
+	if (!LSMessageReply(lshandle, message, reply, &lserror))
 	{
 		LSErrorPrint(&lserror, stderr);
 		LSErrorFree(&lserror);
@@ -326,30 +376,45 @@ bool start_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 
 	stopPalmWifiService();
 	detectHardware();
-	bringUpHardware();
-	configureWifiInterface(ssid->child->text);
-	const char* address = getDhcpAddress();
-
-	// If we got an IP address then update the DNS
-	if(address != NULL)
+	restartNetworkCard();
+	if(configureWifiInterface(ssid->child->text) == true)
 	{
-		if(strlen(preferedDNS->child->text) > 0)
-		{
-			updateDns(preferedDNS->child->text);
-		}
+		const char* address = getDhcpAddress();
 
-		if(strlen(alternateDNS->child->text) > 0)
+		// If we got an IP address then update the DNS
+		if(address != NULL)
 		{
-			updateDns(alternateDNS->child->text);
-		}
+			// If the user passed in both dns options blank, then we'll use the obtained IP address for dns forwarding
+			if(strlen(preferedDNS->child->text) == 0 && strlen(alternateDNS->child->text) == 0)
+			{
+				updateDns(address);
+			}
+			else
+			{
+				if(strlen(preferedDNS->child->text) > 0)
+				{
+					updateDns(preferedDNS->child->text);
+				}
 
-		sprintf(reply, "{\"returnValue\": true, \"address\": \"%s\"}", address);
+				if(strlen(alternateDNS->child->text) > 0)
+				{
+					updateDns(alternateDNS->child->text);
+				}
+			}
+			sprintf(reply, "{\"returnValue\": true, \"address\": \"%s\"}", address);
+		}
+		else
+		{
+			// We didn't managed to get an IP address from the Ad-Hoc access point, so retart the Palm Wi-Fi Service
+			startPalmWifiService();
+			sprintf(reply, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Unable to obtain IP address\"}");
+		}
 	}
 	else
 	{
-		// We didn't managed to get an IP address from the Ad-Hoc access point, so retart the Palm Wi-Fi Service
+		// We didn't managed to configure the network interface
 		startPalmWifiService();
-		sprintf(reply, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Could not obtain IP address\"}");
+		sprintf(reply, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Error configuring network interface\"}");
 	}
 
 	log(reply);
@@ -379,6 +444,7 @@ bool stop_adhoc_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 	// Local buffer to store the reply
 	char reply[MAXLINLEN];
 
+	restartNetworkCard();
 	resetDns();
 	startPalmWifiService();
 	g_adhocAddress = NULL;
@@ -433,6 +499,66 @@ bool query_adhoc_state_method(LSHandle* lshandle, LSMessage *message, void *ctx)
 	return true;	
 }
 
+//
+// Return a polite response.
+// Called directly from webOS, and returns directly to webOS.
+//
+bool set_debug_log_method(LSHandle* lshandle, LSMessage *message, void *ctx)
+{
+	log("set_debug_log_method");
+
+	LSError lserror;
+	LSErrorInit(&lserror);
+
+	// Extract the id argument from the message
+	json_t *object = json_parse_document(LSMessageGetPayload(message));
+	json_t *enableDebugLogging = json_find_first_label(object, "enableDebugLogging");
+               
+	if(enableDebugLogging)
+	{
+		if(enableDebugLogging->child->type == JSON_TRUE)
+		{
+			log("enableDebugLogging: JSON_TRUE");
+			g_debugLoggingEnabled = true;
+		}
+		else if(enableDebugLogging->child->type == JSON_FALSE)
+		{
+			log("enableDebugLogging: JSON_FALSE");
+			g_debugLoggingEnabled = false;
+			remove(LOG_FILE);
+		}
+		else
+		{
+			log("enableDebugLogging: %d", enableDebugLogging->child->type);
+		}
+	}
+	else
+	{
+		if (!LSMessageReply(lshandle, message, "{\"returnValue\": false, \"errorCode\": -1, \"errorText\": \"Invalid or missing parameters\"}", &lserror))
+		{
+			LSErrorPrint(&lserror, stderr);
+			LSErrorFree(&lserror);
+
+			return false;
+		}
+	}
+
+	// Local buffer to store the reply
+	char reply[MAXLINLEN];
+	sprintf(reply, "{\"returnValue\": true, \"debugLoggingEnabled\": %s}", g_debugLoggingEnabled ? "true" : "false");
+	log(reply);
+	
+	if (!LSMessageReply(lshandle, message, reply, &lserror))
+	{
+		LSErrorPrint(&lserror, stderr);
+		LSErrorFree(&lserror);
+
+		return false;
+	}
+
+	return true;
+}
+
 LSMethod luna_methods[] = {
 	{ "status",				dummy_method },
 	{ "version",			version_method },
@@ -440,6 +566,7 @@ LSMethod luna_methods[] = {
 	{ "startAdhoc",			start_adhoc_method },
 	{ "stopAdhoc",			stop_adhoc_method },
 	{ "queryAdhocState", 	query_adhoc_state_method },
+	{ "setDebugLog", 		set_debug_log_method },
 
 	{ 0, 0 }
 };

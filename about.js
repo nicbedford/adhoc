@@ -37,7 +37,7 @@ enyo.kind({
 		this.$.openApplicationCall.call({
 			id: "com.palm.app.browser", 
 			params: {
-				target: this.appInfo.vendorurl
+				target: "http://forums.precentral.net/webos-patches/259326-patch-request-connecting-ad-hoc-wi-fi.html"
 			}
 		});
 	},
@@ -47,7 +47,7 @@ enyo.kind({
 			id: "com.palm.app.email", 
 			params: {
 				summary: this.appInfo.title + " " + this.appInfo.version,
-				recipients:[{ "type": "email", "role": 1, "value": "webos@nicbedford.co.uk" }]
+				recipients:[{ "type": "email", "role": 1, "value": "nbedford@gmail.com" }]
 			}
 		});
 	}

@@ -23,13 +23,6 @@ enyo.kind({
             onFailure: "setPreferencesFailure"
         },
 		{ 
-			name: "versionCheckCall", 
-			kind: "PalmService",
-	      	service: "palm://uk.co.nicbedford.adhoc/",
-			method: "version",
-	      	onSuccess: "onVersionCheck"
-		},
-		{ 
 			name: "startAdhocCall", 
 			kind: "PalmService",
 	      	service: "palm://uk.co.nicbedford.adhoc/",
@@ -89,14 +82,11 @@ enyo.kind({
 		{ name: "stopButton", kind: "Button", content: "Stop Ad-Hoc Mode", style: "width: 460px;", onclick: "doStopAdhoc" },
 		{ name: "scrim", kind: "Scrim", layoutKind: "VFlexLayout", align: "center", pack: "center", components: [
 			{ name: 'spinner', kind: "SpinnerLarge", showing: true }
-		]},
-		{ name: "errorMessage", kind: "HFlexBox", flex: 1, style: "margin-top: 10px;", components: [
-			{ content: "", flex: 1 }
-		]},
+		]}
     ],
     create: function () {
         this.inherited(arguments);
-		this.$.versionCheckCall.call();
+		this.$.queryAdhocStateCall.call();
         this.$.getPreferencesCall.call({
             keys: ["ssid", "preferedDNS", "alternateDNS", "debugLogging"]
         });
@@ -134,17 +124,6 @@ enyo.kind({
     setPreferencesFailure: function (inSender, inResponse) {
         enyo.log("setPreferencesFailure");
     },
-	onVersionCheck: function (inSender, inResponse) {
-		enyo.log("onVersionCheck");
-		if(!inResponse) {
-			this.$.errorMessage.content.setValue("Error connecting to service, please restart device and try again!");		
-			this.$.errorMessage.show();
-		}
-		else {
-			enyo.log("apiVersion: " + inResponse.apiVersion);
-			this.$.queryAdhocStateCall.call();
-		}
-	},
     showingChanged: function () {
         this.$.ssid.setValue(this.savedSSID);
         this.$.preferedDNS.setValue(this.savedPreferedDNS);
